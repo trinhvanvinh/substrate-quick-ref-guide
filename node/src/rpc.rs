@@ -38,6 +38,8 @@ where
 	C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
 	C::Api: BlockBuilder<Block>,
 	P: TransactionPool + 'static,
+	// custom
+	//C::Api: pallet_contracts_rpc::ContractsRuntimeApi<Block, AccountId, Balance, BlockNumber, Hash>,
 {
 	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
 	use substrate_frame_rpc_system::{System, SystemApiServer};
@@ -52,6 +54,11 @@ where
 	// `YourRpcStruct` should have a reference to a client, which is needed
 	// to call into the runtime.
 	// `module.merge(YourRpcTrait::into_rpc(YourRpcStruct::new(ReferenceToClient, ...)))?;`
+
+	// Contracts RPC API extension
+	// custom
+	// use pallet_contracts_rpc::{ContractsApiServer, ContractsRpc};
+	// module.merge(ContractsRpc::new(client.clone()).into_rpc())?;
 
 	Ok(module)
 }

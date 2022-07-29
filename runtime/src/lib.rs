@@ -23,6 +23,17 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
+// custom
+// use pallet_contracts::migration;
+// use pallet_contracts::weights::WeightInfo;
+// pub struct Migrations;
+
+// impl OnRuntimeUpgrade for Migrations {
+// 	fn on_runtime_upgrade() -> Weight {
+// 		migration::migrate::<Runtime>()
+// 	}
+// }
+
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
 	construct_runtime, parameter_types,
@@ -45,6 +56,7 @@ pub use sp_runtime::{Perbill, Permill};
 
 /// Import the template pallet.
 pub use pallet_template;
+pub use pallet_lockable;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -125,6 +137,17 @@ pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
 pub const HOURS: BlockNumber = MINUTES * 60;
 pub const DAYS: BlockNumber = HOURS * 24;
 
+// custom
+// const UNIT: Balance = 1_000_000_000_000;
+// const MILLIUNIT: Balance = 1_000_000_000;
+// const EXISTENTIAL_DEPOSIT: Balance = MILLIUNIT;
+
+// const fn deposit(items: u32, bytes: u32) -> Balance {
+// 	(items as Balance * UNIT + (bytes as Balance) * (5 * MILLIUNIT / 100)) / 10
+// }
+
+// const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(10);
+
 /// The version information used to identify this runtime when compiled natively.
 #[cfg(feature = "std")]
 pub fn native_version() -> NativeVersion {
@@ -142,6 +165,13 @@ parameter_types! {
 	pub BlockLength: frame_system::limits::BlockLength = frame_system::limits::BlockLength
 		::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
 	pub const SS58Prefix: u8 = 42;
+
+	// custom
+	// pub DeletionQueueDepth: u32 = ((DeletionWeightLimit::get() / (
+	// 	<Runtime as pallet_contracts::Config>::WeightInfo::on_initialize_per_queue_item(1) -
+	// 	<Runtime as pallet_contracts::Config>::WeightInfo::on_initialize_per_queue_item(0)
+	// 	)) / 5) as u32;
+
 }
 
 // Configure FRAME pallets to include in runtime.
@@ -267,6 +297,24 @@ impl pallet_template::Config for Runtime {
 	type Event = Event;
 }
 
+// custom
+// impl pallet_contracts::Config for Runtime {
+// 	type Event = Event;
+// 	type Time = Timestamp;
+// 	type Randomness = RandomnessCollectiveFlip;
+// 	type Currency = Balances;
+// }
+
+// impl pallet_contracts_rpc_runtime_api::ContractsApi<Block, AccountId, Balance, BlockNumber, Hash>
+// 	for Runtime
+// {
+// }
+
+impl pallet_lockable::Config for Runtime{
+	type Event = Event;
+	type Currency = Balances;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -284,6 +332,10 @@ construct_runtime!(
 		Sudo: pallet_sudo,
 		// Include the custom logic from the pallet-template in the runtime.
 		TemplateModule: pallet_template,
+
+		// custom
+		//Contracts: pallet_contracts,
+		LockableModule: pallet_lockable,
 	}
 );
 
@@ -315,6 +367,8 @@ pub type Executive = frame_executive::Executive<
 	frame_system::ChainContext<Runtime>,
 	Runtime,
 	AllPalletsWithSystem,
+	//custom
+	//Migrations,
 >;
 
 #[cfg(feature = "runtime-benchmarks")]
