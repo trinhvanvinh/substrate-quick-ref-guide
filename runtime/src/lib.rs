@@ -57,6 +57,7 @@ pub use sp_runtime::{Perbill, Permill};
 /// Import the template pallet.
 pub use pallet_template;
 pub use pallet_lockable;
+pub use pallet_randomness;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -313,6 +314,11 @@ impl pallet_template::Config for Runtime {
 impl pallet_lockable::Config for Runtime{
 	type Event = Event;
 	type Currency = Balances;
+}
+
+impl pallet_randomness::Config for Runtime{
+	type Event = Event;
+	type MyRandomness = RandomnessCollectiveFlip;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
