@@ -17,12 +17,12 @@ pub use pallet::*;
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
 use frame_support::traits::Randomness;
+use frame_support::inherent::Vec;
+use frame_support::sp_runtime::traits::Hash;
 
 #[frame_support::pallet]
 pub mod pallet {
 	pub use super::*;
-
-
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
@@ -48,7 +48,7 @@ pub mod pallet {
 	#[pallet::getter(fn myStorageItem)]
 	// Learn more about declaring storage items:
 	// https://docs.substrate.io/v3/runtime/storage#declaring-storage-items
-	pub type MyStorageItem<T> = StorageValue<_, u8 >;
+	pub type MyStorageItem<T> = StorageValue<_, <T as frame_system::Config>::Hash >;
 
 	#[pallet::storage]
 	#[pallet::getter(fn nonce)]
@@ -64,7 +64,7 @@ pub mod pallet {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
 		SomethingStored(u32, T::AccountId),
-		UniqueCreated( Vec<u8>),
+		UniqueCreated(<T as frame_system::Config>::Hash),
 	}
 
 	// Errors inform users that something went wrong.
@@ -113,10 +113,10 @@ pub mod pallet {
 					let new = old.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
 					// Update the value in storage with the incremented result.
 					<Something<T>>::put(new);
-					
+					Ok(())
 				},
 			}
-			Ok(())
+			//Ok(())
 		}
 	
 		#[pallet::weight(100)]
@@ -136,10 +136,10 @@ pub mod pallet {
 }
 
 impl<T:Config> Pallet<T> {
-	fn get_and_increment_nonce() -> u32{
+	fn get_and_increment_nonce() -> Vec<u8>{
 		let nonce = Nonce::<T>::get();
-		Nonce::<T>::put(nonce.unwrap());
-		nonce.unwrap()
+		Nonce::<T>::put(nonce.unwrap().wrapping_add(1));
+		nonce.encode()
 	}
 }
 

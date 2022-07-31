@@ -342,6 +342,7 @@ construct_runtime!(
 		// custom
 		//Contracts: pallet_contracts,
 		LockableModule: pallet_lockable,
+		RandomnessModule: pallet_randomness,
 	}
 );
 
