@@ -19,6 +19,52 @@ use frame_system::pallet_prelude::*;
 use frame_support::traits::Randomness;
 use frame_support::inherent::Vec;
 use frame_support::sp_runtime::traits::Hash;
+use frame_support::traits::Currency;
+use frame_support::traits::ReservableCurrency;
+//use frame_support::PalletId;
+
+type BalanceOf<T> =
+	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+
+#[derive(
+	Encode, Decode, Default, Eq, PartialEq, RuntimeDebug, scale_info::TypeInfo, MaxEncodedLen,
+)]
+pub struct LotteryConfig<BlockNumber, Balance>{
+	// price for entry
+	price: Balance,
+	// startblock of lottery
+	start: BlockNumber,
+	//length of lottery (start + length = end)
+	length: BlockNumber,
+	//deplay for choosing the winner of the lottery. (start + length + delay = paypout)
+	// randomness in payout block will be used to determine the winner
+	delay: BlockNumber,
+	// whether this lottery will repeat after it completes
+	repeat: bool
+}
+
+#[derive(Clone, Copy, Eq, PartialEq, Encode, Decode, TypeInfo)]
+pub struct PalletId(pub [u8; 8]);
+
+
+pub trait ValidateCall<T:Config>{
+	fn validate_call()-> bool;
+}
+
+impl<T:Config> ValidateCall<T> for (){
+	fn validate_call()-> bool{
+		false
+	}
+}
+
+impl<T: Config> ValidateCall<T> for Pallet<T> {
+	fn validate_call()-> bool{
+		false
+	}
+}
+
+type CallIndex = (u8, u8);
+
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -27,9 +73,25 @@ pub mod pallet {
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
+
+		#[pallet::constant]
+		type PalletId: Get<PalletId>;
+
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type MyRandomness: Randomness<Self::Hash, Self::BlockNumber>;
+		/// The currency trait.
+		type Currency: ReservableCurrency<Self::AccountId>;
+
+		// the max number calls available in a single lottery
+		#[pallet::constant]
+		type MaxCalls: Get<u32>;
+
+		#[pallet::constant]
+		type MaxGenerateRandom: Get<u32>;
+
+		
+
 	}
 
 	#[pallet::pallet]
@@ -65,6 +127,11 @@ pub mod pallet {
 		/// parameters. [something, who]
 		SomethingStored(u32, T::AccountId),
 		UniqueCreated(<T as frame_system::Config>::Hash),
+
+		LotteryStarted,
+		CallsUpdated,
+		Winner {winner: T::AccountId, lottery_balance: BalanceOf<T>},
+		TicketBought {who: T::AccountId, call_index: CallIndex }
 	}
 
 	// Errors inform users that something went wrong.
@@ -74,7 +141,55 @@ pub mod pallet {
 		NoneValue,
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
+
+		NotConfigured,
+		InProgress,
+		AlreadyEnded,
+		InvalidCall,
+		AlreadyParticipating,
+		TooManyCalls,
+		EncodingFailed
 	}
+
+	#[pallet::storage]
+	pub(crate) type LotteryIndex<T> = StorageValue<_, u32, ValueQuery>;
+
+	// the configuration for the current lottery
+	#[pallet::storage]
+	pub(crate) type Lottery<T: Config> = StorageValue<_, LotteryConfig<T::BlockNumber, BalanceOf<T> >>;
+
+	// user who have purchased a ticket
+	#[pallet::storage]
+	pub(crate) type Participants<T:Config> = StorageMap<_, Twox64Concat, T::AccountId, (u32, BoundedVec<CallIndex, T::MaxCalls>), ValueQuery>;
+
+	// Total number of tickets sold
+	#[pallet::storage]
+	pub(crate) type TicketsCount<T> = StorageValue<_, u32, ValueQuery>;
+
+	#[pallet::storage]
+	pub(crate) type Tickets<T: Config> = StorageMap<_, Twox64Concat, u32, T::AccountId>;
+
+	#[pallet::storage]
+	pub(crate) type CallIndices<T:Config> = StorageValue<_, BoundedVec<CallIndex, T::MaxCalls>, ValueQuery>;
+
+
+
+	#[pallet::hooks]
+	impl<T:Config> Hooks<BlockNumberFor<T>> for Pallet<T>{
+		fn on_initialize(n: T::BlockNumber) -> Weight{
+			Lottery::<T>::mutate(|lottery|-> Weight{
+				if let Some(config) = lottery{
+					let payout_block = config.start.saturating_add(config.length).saturating_add(config.delay);
+
+					if payout_block <= n{
+						//let
+					}
+				}
+				T::DbWeight::get().reads(1)
+			})
+		}
+	}
+
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
 	// These functions materialize as "extrinsics", which are often compared to transactions.
@@ -118,7 +233,7 @@ pub mod pallet {
 			}
 			//Ok(())
 		}
-	
+
 		#[pallet::weight(100)]
 		pub fn create_uniquie(origin: OriginFor<T>)-> DispatchResult {
 			let sender = ensure_signed(origin)?;
@@ -131,8 +246,11 @@ pub mod pallet {
 
 			Ok(())
 		}
+
+
+
 	}
-	
+
 }
 
 impl<T:Config> Pallet<T> {
@@ -140,6 +258,10 @@ impl<T:Config> Pallet<T> {
 		let nonce = Nonce::<T>::get();
 		Nonce::<T>::put(nonce.unwrap().wrapping_add(1));
 		nonce.encode()
+	}
+
+	pub fn account_id()-> T::AccountId{
+		T::PalletId::get().into_account_truncating()
 	}
 }
 

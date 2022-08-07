@@ -44,7 +44,7 @@ pub use frame_support::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
 		IdentityFee, Weight,
 	},
-	StorageValue,
+	StorageValue
 };
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
@@ -57,7 +57,7 @@ pub use sp_runtime::{Perbill, Permill};
 /// Import the template pallet.
 pub use pallet_template;
 pub use pallet_lockable;
-pub use pallet_randomness;
+//pub use pallet_randomness;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -316,10 +316,21 @@ impl pallet_lockable::Config for Runtime{
 	type Currency = Balances;
 }
 
-impl pallet_randomness::Config for Runtime{
-	type Event = Event;
-	type MyRandomness = RandomnessCollectiveFlip;
-}
+// parameter_types!{
+// 	pub const MaxCalls: u32 = 10;
+// 	pub const MaxGenerateRandom: u32 = 10;
+// 	pub const PalletId: PalletId = PalletId(*b"py/trsry");
+// }
+
+// impl pallet_randomness::Config for Runtime{
+// 	type Event = Event;
+// 	type MyRandomness = RandomnessCollectiveFlip;
+// 	type Currency = Balances;
+
+// 	type MaxCalls = MaxCalls;
+// 	type MaxGenerateRandom = MaxGenerateRandom;
+// 	type PalletId = PalletId;
+// }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
@@ -342,7 +353,7 @@ construct_runtime!(
 		// custom
 		//Contracts: pallet_contracts,
 		LockableModule: pallet_lockable,
-		RandomnessModule: pallet_randomness,
+		//RandomnessModule: pallet_randomness,
 	}
 );
 
