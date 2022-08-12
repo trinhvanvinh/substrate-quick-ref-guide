@@ -58,6 +58,7 @@ pub use sp_runtime::{Perbill, Permill};
 pub use pallet_template;
 pub use pallet_lockable;
 //pub use pallet_randomness;
+pub use pallet_configurable_constant;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -332,6 +333,17 @@ impl pallet_lockable::Config for Runtime{
 // 	type PalletId = PalletId;
 // }
 
+parameter_types!{
+	pub const MaxAdded: u32 = 100;
+	pub const ClearFrequency: u32 = 10;
+}
+
+impl pallet_configurable_constant::Config for Runtime{
+	type Event = Event;
+	type MaxAdded = MaxAdded;
+	type ClearFrequency = ClearFrequency;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -354,6 +366,8 @@ construct_runtime!(
 		//Contracts: pallet_contracts,
 		LockableModule: pallet_lockable,
 		//RandomnessModule: pallet_randomness,
+
+		ConfigurableConstants: pallet_configurable_constant
 	}
 );
 
