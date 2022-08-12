@@ -314,7 +314,8 @@ impl pallet_template::Config for Runtime {
 
 impl pallet_lockable::Config for Runtime{
 	type Event = Event;
-	type Currency = Balances;
+	//type Currency = Balances;
+	type Balance = Balance
 }
 
 // parameter_types!{

@@ -18,15 +18,17 @@ use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
 
 use frame_support::{
-	dispatch::DispatchResult,
+	dispatch::DispatchResultWithPostInfo,
 	traits::{Currency, LockIdentifier, LockableCurrency, WithdrawReasons},
 };
-type BalanceOf<T> =
-	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+// type BalanceOf<T> =
+// 	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+
 
 #[frame_support::pallet]
 pub mod pallet {
 	pub use super::*;
+	use sp_runtime::traits::{AtLeast32BitUnsigned, Saturating};
 
 	const EXAMPLE_ID: LockIdentifier = *b"example ";
 
@@ -38,7 +40,9 @@ pub mod pallet {
 		//type Currency: Currency<Self::AccountId>;
 
 
-		type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
+		//type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
+
+		type Balance: Member + Parameter + AtLeast32BitUnsigned + Default + Copy;
 		
 	}
 
@@ -54,6 +58,11 @@ pub mod pallet {
 	// https://docs.substrate.io/v3/runtime/storage#declaring-storage-items
 	pub type Something<T> = StorageValue<_, u32>;
 
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_balance)]
+	pub(super) type BalanceToAccount<T:Config> = StorageMap<_, Blake2_128Concat, T::AccountId, T::Balance, ValueQuery>;
+
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
 	#[pallet::event]
@@ -65,7 +74,10 @@ pub mod pallet {
 
 		Locked(T::AccountId, BalanceOf<T>),
 		Unlocked(T::AccountId),
-		LockExtended(T::AccountId, BalanceOf<T>)
+		LockExtended(T::AccountId, BalanceOf<T>),
+
+		MinteNewSupply(T::AccountId),
+		Transfered(T::AccountId, T::AccountId, T::Balance)
 	}
 
 	// Errors inform users that something went wrong.
@@ -155,6 +167,34 @@ pub mod pallet {
 			Self::deposit_event(Event::Unlocked(user));
 
 			Ok(().into())
+		}
+
+		#[pallet::weight(10_000)]
+		pub(super) fn mint(origin: OriginFor<T>, #[pallet::compact] amount: T::Balance) -> DispatchResult{
+			let sender = ensure_signed(origin)?;
+			<BalanceToAccount>::insert(sender, amount);
+			Self::deposit_event(Event::MinteNewSupply(sender));
+
+			Ok(())
+		}
+
+		#[pallet::weight(1_000)]
+		pub(super) fn transfer(origin: OriginFor<T>, to: T::AccountId, amount: T::Balance)-> DispatchResult{
+			let sender = ensure_signed(origin)?;
+			let sender_balance = Self::get_balance(sender);
+			let receiver_balance = Self::get_balance(to);
+
+			// calculate new balance
+			let update_sender = sender_balance.saturating_sub(amount);
+			let update_to = receiver_balance.saturating_add(amount);
+
+			// update accounts balance storage
+			<BalanceToAccount>::insert(sender, update_sender);
+			<BalanceToAccount>::insert(to, update_to);
+
+			Self::deposit_event(Event::Transfered(sender, to, amount));
+
+			Ok(())
 		}
 	}
 }
