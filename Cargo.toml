@@ -2,7 +2,7 @@
 members = [
     "node",
     "pallets/template",
-    "pallets/lockable",
+    # "pallets/lockable",
     "runtime",
 ]
 [profile.release]

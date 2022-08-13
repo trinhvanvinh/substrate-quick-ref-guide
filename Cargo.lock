@@ -3776,7 +3776,6 @@ dependencies = [
  "pallet-balances",
  "pallet-configurable-constant",
  "pallet-grandpa",
- "pallet-lockable",
  "pallet-randomness-collective-flip",
  "pallet-sudo",
  "pallet-template",
@@ -4046,20 +4045,6 @@ dependencies = [
  "sp-session",
  "sp-staking",
  "sp-std",
-]
-
-[[package]]
-name = "pallet-lockable"
-version = "4.0.0-dev"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "parity-scale-codec",
- "scale-info",
- "sp-core",
- "sp-io",
- "sp-runtime",
 ]
 
 [[package]]

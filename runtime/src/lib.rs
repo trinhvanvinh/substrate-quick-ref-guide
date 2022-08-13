@@ -56,7 +56,7 @@ pub use sp_runtime::{Perbill, Permill};
 
 /// Import the template pallet.
 pub use pallet_template;
-pub use pallet_lockable;
+//pub use pallet_lockable;
 //pub use pallet_randomness;
 pub use pallet_configurable_constant;
 
@@ -312,11 +312,11 @@ impl pallet_template::Config for Runtime {
 // {
 // }
 
-impl pallet_lockable::Config for Runtime{
-	type Event = Event;
-	//type Currency = Balances;
-	type Balance = Balance
-}
+// impl pallet_lockable::Config for Runtime{
+// 	type Event = Event;
+// 	//type Currency = Balances;
+// 	type Balance = Balance
+// }
 
 // parameter_types!{
 // 	pub const MaxCalls: u32 = 10;
@@ -365,7 +365,7 @@ construct_runtime!(
 
 		// custom
 		//Contracts: pallet_contracts,
-		LockableModule: pallet_lockable,
+		//LockableModule: pallet_lockable,
 		//RandomnessModule: pallet_randomness,
 
 		ConfigurableConstants: pallet_configurable_constant
