@@ -59,6 +59,7 @@ pub use pallet_template;
 //pub use pallet_lockable;
 //pub use pallet_randomness;
 pub use pallet_configurable_constant;
+pub use pallet_proof_of_existence;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -345,6 +346,11 @@ impl pallet_configurable_constant::Config for Runtime{
 	type ClearFrequency = ClearFrequency;
 }
 
+impl pallet_proof_of_existence::Config for Runtime{
+	type Event = Event;
+	type Currency = Balances;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -369,6 +375,8 @@ construct_runtime!(
 		//RandomnessModule: pallet_randomness,
 
 		ConfigurableConstants: pallet_configurable_constant
+
+		ProofOfExistence: pallet_proof_of_existence
 	}
 );
 

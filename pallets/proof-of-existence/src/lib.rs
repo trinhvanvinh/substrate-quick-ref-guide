@@ -14,20 +14,39 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+
+//use frame_support::codec::{MaxEncodedLen};
+//use frame_support::inherent::Vec;
+use sp_std::{prelude::*};
+use frame_support::pallet_prelude::MaxEncodedLen;
+use frame_support::inherent::Vec;
+use frame_support::storage::bounded_vec::BoundedVec;
+use frame_support::dispatch::fmt;
+use frame_support::sp_runtime::ArithmeticError;
+use frame_support::pallet_prelude::*;
+use frame_system::pallet_prelude::*;
+use frame_support::traits::Currency;
+
+type BalanceOf<T> =
+	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::pallet_prelude::*;
-	use frame_system::pallet_prelude::*;
-
+	use super::*;
+	
+	//use sp_std::vec::Vec;
+	//use frame_support::inherent::Vec;
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type Currency: Currency<Self::AccountId>;
 	}
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
+	//#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
 	// The pallet's runtime storage items.
@@ -38,6 +57,10 @@ pub mod pallet {
 	// https://docs.substrate.io/v3/runtime/storage#declaring-storage-items
 	pub type Something<T> = StorageValue<_, u32>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn proof)]
+	pub(super) type Proofs<T: Config> = StorageMap<_, Blake2_128Concat, Vec<u8>, (T::AccountId, T::BlockNumber), ValueQuery>;
+
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
 	#[pallet::event]
@@ -46,6 +69,9 @@ pub mod pallet {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
 		SomethingStored(u32, T::AccountId),
+
+		//ClaimCreated(T::AccountId, Vec<u8>),
+		//ClaimRevoked(T::AccountId, Vec<u8>)
 	}
 
 	// Errors inform users that something went wrong.
@@ -55,7 +81,15 @@ pub mod pallet {
 		NoneValue,
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
+
+		ProofAlreadyClaimed,
+		NoSuchProof,
+		NotProofOwner
 	}
+
+	#[pallet::hooks]
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
+
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
 	// These functions materialize as "extrinsics", which are often compared to transactions.
@@ -97,6 +131,29 @@ pub mod pallet {
 					Ok(())
 				},
 			}
+		}
+
+		#[pallet::weight(1_000)]
+		pub fn create_claim(origin: OriginFor<T>, proof: Vec<u8>)-> DispatchResult{
+			let sender = ensure_signed(origin)?;
+			ensure!(!Proofs::<T>::contains_key(proof), Error::<T>::ProofAlreadyClaimed);
+			let current_block = <frame_system::Module<T>>::block_number();
+			Proofs::<T>::insert(proof,(sender, current_block));
+
+			Ok(())
+		}
+		#[pallet::weight(10_000)]
+		pub fn revoke_claim(origin: OriginFor<T>, proof: Vec<u8>)-> DispatchResult{
+			let sender = ensure_signed(origin)?;
+			ensure!(Proofs::<T>::contains_key(proof), Error::<T>::NoSuchProof);
+
+			let(owner, _) = Proofs::<T>::get(proof);
+			ensure!(sender == owner, Error::<T>::NotProofOwner);
+
+			Proofs::<T>::remove(proof);
+			Self::deposit_event(Event::ClaimRevoked(sender, proof));
+
+			Ok(())
 		}
 	}
 }
