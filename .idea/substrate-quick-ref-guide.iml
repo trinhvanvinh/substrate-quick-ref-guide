@@ -8,12 +8,16 @@
       <sourceFolder url="file://$MODULE_DIR$/pallets/randomness/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/pallets/template/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/runtime/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/pallets/configurable-constant/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/pallets/proof-of-existence/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/node/target" />
       <excludeFolder url="file://$MODULE_DIR$/runtime/target" />
       <excludeFolder url="file://$MODULE_DIR$/pallets/lockable/target" />
       <excludeFolder url="file://$MODULE_DIR$/pallets/randomness/target" />
       <excludeFolder url="file://$MODULE_DIR$/pallets/template/target" />
+      <excludeFolder url="file://$MODULE_DIR$/pallets/configurable-constant/target" />
+      <excludeFolder url="file://$MODULE_DIR$/pallets/proof-of-existence/target" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

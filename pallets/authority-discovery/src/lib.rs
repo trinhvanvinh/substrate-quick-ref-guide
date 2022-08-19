@@ -14,8 +14,19 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+use frame_support::{
+	traits::{
+		Get, OneSessionHandler
+	},
+	WeakBoundedVec
+};
+
+use sp_authority_discovery::AuthorityId;
+use sp_std::prelude::*;
+
 #[frame_support::pallet]
 pub mod pallet {
+	use super::*;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 
@@ -24,6 +35,8 @@ pub mod pallet {
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
+		type MaxAuthorities: Get<u32>;
 	}
 
 	#[pallet::pallet]
@@ -37,6 +50,29 @@ pub mod pallet {
 	// Learn more about declaring storage items:
 	// https://docs.substrate.io/v3/runtime/storage#declaring-storage-items
 	pub type Something<T> = StorageValue<_, u32>;
+
+
+
+	#[pallet::storage]
+	#[pallet::getter(fn keys)]
+	pub(super) type Keys<T:Config> = StorageValue<_, WeakBoundedVec<AuthorityId, T::MaxAuthorities>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn next_keys)]
+	pub(super) type NextKeys<T: Config> = StorageValue<_, WeakBoundedVec<AuthorityId, T::MaxAuthorities>, ValueQuery>;
+
+	#[cfg_attr(feature="std", #[derive(Default)])]
+	#[pallet::genesis_config]
+	pub struct GenesisConfig{
+		pub keys: Vec<AuthorityId>
+	}
+
+	impl<T:Config> GenesisBuild<T> for GenesisConfig{
+		fn build(self){
+			Pallet::<T>::initialize_keys(self.keys)
+		}
+	}
+
 
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
@@ -97,6 +133,41 @@ pub mod pallet {
 					Ok(())
 				},
 			}
+		}
+	}
+}
+
+
+
+impl<T:Config> Pallet<T>{
+	pub fn authorities()-> Vec<AuthorityId>{
+		let mut keys = Keys::<T>::get().to_vec();
+		let next = NextKeys::<T>::get().to_vec();
+
+		keys.extend(next);
+		keys.sort();
+		keys.dedup();
+
+		keys.to_vec()
+	}
+
+	pub fn current_authorities() -> WeakBoundedVec<AuthorityId, T::MaxAuthorities>{
+		Keys::<T>::get()
+	}
+
+	pub fn next_authorities()->  WeakBoundedVec<AuthorityId, T::MaxAuthorities>{
+		NextKeys::<T>::get()
+	}
+
+	fn initialize_keys(keys: Vec<AuthorityId>){
+		if !keys.is_empty(){
+			assert!(Keys::<T>::get().is_empty(), "Keys are already initialized");
+
+			let bouned_keys = WeakBoundedVec::<AuthorityId, T::MaxAuthorities>::try_from(keys.clone())
+				.expect("Keys vec too big");
+
+			Keys::<T>::put(bouned_keys);
+			NextKeys::<T>::put(bouned_keys);
 		}
 	}
 }
