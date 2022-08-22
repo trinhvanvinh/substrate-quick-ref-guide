@@ -24,6 +24,9 @@ pub mod pallet {
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
+		#[pallet;:constant]
+		type MaxLength: Get<u32>;
 	}
 
 	#[pallet::pallet]
@@ -38,6 +41,22 @@ pub mod pallet {
 	// https://docs.substrate.io/v3/runtime/storage#declaring-storage-items
 	pub type Something<T> = StorageValue<_, u32>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn asset)]
+	pub type Asset<T:Config> = StorageMap<_, Blake2_128Concat, AssetId, AssetDetails<T::AccountId>>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn account)]
+	pub type Account<T:Config> = StorageMap<_, Blake2_128Concat, AssetId, Blake2_128Concat, T::AccountId, u128, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn metadata)]
+	pub type Metadata<T:Config> = StorageMap<_, Blake2_128Concat, AssetId, types::AssetMetadata<T::MaxLength>>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn nonce)]
+	pub type Nonce<T:Config> = StorageValue<_, AssetId, ValueQuery>;
+
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
 	#[pallet::event]
@@ -46,6 +65,12 @@ pub mod pallet {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
 		SomethingStored(u32, T::AccountId),
+
+		Created{owner: T::AccountId, asset_id: AssetId},
+		MetadataSet{asset_id: AssetId, name: BoundedVec<u8, T::MaxLength>, symbol: BoundedVec<u8, T::MaxLength>},
+		Minted{asset_id: AssetId, owner: T::AccountId, total_supply: u128},
+		Burned{asset_id: AssetId, owner: T::AccountId, total_supply: u128},
+		Transfer{asset_id: AssetId, from: T::AccountId, to: T::AccountId, amount: u128}
 	}
 
 	// Errors inform users that something went wrong.
@@ -55,6 +80,9 @@ pub mod pallet {
 		NoneValue,
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
+
+		UnknownAssetId,
+		NoPermission
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -97,6 +125,21 @@ pub mod pallet {
 					Ok(())
 				},
 			}
+		}
+
+		#[pallet::weight(0)]
+		pub fn create(origin: OriginFor<T>) -> DispatchResult{
+			let origin = ensure_signed(origin)?;
+
+			let id = Self::nonce();
+			let details = AssetDetails::new(origin.clone());
+
+			Asset::<T>::insert(id, details);
+			Nonce::<T>::set(id.saturating_add(1));
+
+			Self::deposit_event(Event::<T>::Created{owner: origin, asset_id: id});
+
+			Ok(())
 		}
 	}
 }
