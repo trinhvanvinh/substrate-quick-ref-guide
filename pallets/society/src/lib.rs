@@ -221,6 +221,41 @@ pub mod pallet {
 	pub type MaxMembers<T:Config> = StorageValue<_, u32, ValueQuery> ;
 
 
+	#[pallet::genesis_config]
+	pub struct GenesisConfig<T:Config>{
+		pub pot: BalanceOf,
+		pub members: Vec<T::AccountId>,
+		pub max_members: u32
+	}
+
+	#[cfg(feature="std")]
+	impl<T:Config> Default for GenesisConfig<T>{
+		fn default()-> Self{
+			Self{
+				pot: Default::default(),
+				members: Default::default(),
+				max_members: Default::default()
+			}
+		}
+	}
+
+	#[pallet::genesis_build]
+	impl<T:Config> GenesisBuild for GenesisConfig<T>{
+		fn build(self){
+			Pot::<T>::put(self.pot);
+			MaxMembers::<T>::put(self.max_members);
+			let first_number = self.members.first();
+			if let Some(member) = first_number{
+				Founder::<T>::put(member.clone());
+				Head::<T>::put(member.clone());
+			}
+			let mut m = self.members.clone();
+			m.sort();
+			Members::<T>::put(m);
+		}
+	}
+
+
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
 	#[pallet::event]
@@ -317,5 +352,16 @@ pub mod pallet {
 				},
 			}
 		}
+
+		pub fn bid(origin: OriginFor<T>, value: BalanceOf<T>)-> DispatchResult{
+			let who = ensure_signed(origin)?;
+			ensure!(!<SuspendedCandidates<T>>::contains_key(who), Error::<T>::Suspended);
+			ensure!(!<SuspendedCandidates<T>>::contains_key(who), Error::<T>::Suspended);
+
+			let bids = <Bids<T>>::get();
+			
+
+		}
+
 	}
 }
